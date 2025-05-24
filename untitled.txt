@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>GTA-Style Game with Buildings</title>
+  <style>
+    body { margin: 0; overflow: hidden; }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.min.js"></script>
+  <script>
+    // Setup scene, camera, renderer
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    // Player cube
+    const geometry = new THREE.BoxGeometry(1, 1, 1);
+    const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+    const player = new THREE.Mesh(geometry, material);
+    player.position.y = 0.5;  // half above ground
+    scene.add(player);
+
+    // Ground plane
+    const ground = new THREE.Mesh(
+      new THREE.PlaneGeometry(100, 100),
+      new THREE.MeshBasicMaterial({ color: 0x444444, side: THREE.DoubleSide })
+    );
+    ground.rotation.x = -Math.PI / 2;
+    scene.add(ground);
+
+    // Create buildings function
+    function createBuilding(x, z, width, height, depth, color) {
+      const geometry = new THREE.BoxGeometry(width, height, depth);
+      const material = new THREE.MeshBasicMaterial({ color });
+      const building = new THREE.Mesh(geometry, material);
+      building.position.set(x, height / 2, z);
+      scene.add(building);
+    }
+
+    // Create grid of buildings
+    for (let i = -20; i <= 20; i += 10) {
+      for (let j = -20; j <= 20; j += 10) {
+        const width = 4 + Math.random() * 3;
+        const height = 5 + Math.random() * 15;
+        const depth = 4 + Math.random() * 3;
+        createBuilding(i, j, width, height, depth, 0x888888);
+      }
+    }
+
+    // Camera initial position
+    camera.position.set(0, 5, 10);
+    camera.lookAt(player.position);
+
+    // Movement controls with rotation
+    const keys = {};
+    document.addEventListener('keydown', e => keys[e.key.toLowerCase()] = true);
+    document.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
+
+    function updatePlayer() {
+      const speed = 0.1;
+      let moving = false;
+      let moveX = 0;
+      let moveZ = 0;
+
+      if (keys['w']) { moveZ -= speed; moving = true; }
+      if (keys['s']) { moveZ += speed; moving = true; }
+      if (keys['a']) { moveX -= speed; moving = true; }
+      if (keys['d']) { moveX += speed; moving = true; }
+
+      player.position.x += moveX;
+      player.position.z += moveZ;
+
+      if (moving) {
+        const angle = Math.atan2(moveX, moveZ);
+        player.rotation.y = angle;
+      }
+    }
+
+    function updateCamera() {
+      const offset = new THREE.Vector3(0, 5, 10);
+      const cameraPosition = player.position.clone().add(offset);
+      camera.position.lerp(cameraPosition, 0.1);
+      camera.lookAt(player.position);
+    }
+
+    // Resize handler
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // Animation loop
+    function animate() {
+      requestAnimationFrame(animate);
+      updatePlayer();
+      updateCamera();
+      renderer.render(scene, camera);
+    }
+    animate();
+  </script>
+</body>
+</html>
